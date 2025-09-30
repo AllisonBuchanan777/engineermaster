@@ -27,6 +27,13 @@ import ComprehensiveLessonLibrary from './pages/comprehensive-lesson-library';
 import SkillTrees from './pages/skill-trees';
 import AchievementLevels from './pages/achievement-levels';
 
+// Community Hub - NEW
+import CommunityHub from './pages/community-hub';
+
+// New onboarding and profile management pages
+import OnboardingFlow from './pages/onboarding-flow';
+import UserProfileManagement from './pages/user-profile-management';
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -45,6 +52,9 @@ const Routes = () => {
           <Route path="/comprehensive-lesson-library" element={<ComprehensiveLessonLibrary />} />
           <Route path="/skill-trees" element={<SkillTrees />} />
           <Route path="/achievement-levels" element={<AchievementLevels />} />
+          <Route path="/community-hub" element={<CommunityHub />} />
+          <Route path="/onboarding-flow" element={<OnboardingFlow />} />
+          <Route path="/user-profile-management" element={<UserProfileManagement />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="*" element={<NotFound />} />
