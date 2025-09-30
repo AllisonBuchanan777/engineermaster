@@ -39,6 +39,9 @@ import AdminCMSDashboard from './pages/admin-cms-dashboard';
 import NotificationCenter from './pages/notification-center';
 import OfflineLearningMode from './pages/offline-learning-mode';
 
+// NEW PAGES - Enhanced Dashboard
+import EnhancedDashboard from './pages/enhanced-dashboard';
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -47,6 +50,7 @@ const Routes = () => {
         <RouterRoutes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/enhanced-dashboard" element={<EnhancedDashboard />} />
           <Route path="/learning-roadmap" element={<LearningRoadmap />} />
           <Route path="/lesson/:lessonId" element={<LessonInterface />} />
           <Route path="/simulation-lab" element={<SimulationLab />} />
