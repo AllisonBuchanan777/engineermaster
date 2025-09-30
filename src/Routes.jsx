@@ -34,6 +34,11 @@ import CommunityHub from './pages/community-hub';
 import OnboardingFlow from './pages/onboarding-flow';
 import UserProfileManagement from './pages/user-profile-management';
 
+// Add new imports
+import AdminCMSDashboard from './pages/admin-cms-dashboard';
+import NotificationCenter from './pages/notification-center';
+import OfflineLearningMode from './pages/offline-learning-mode';
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -55,6 +60,11 @@ const Routes = () => {
           <Route path="/community-hub" element={<CommunityHub />} />
           <Route path="/onboarding-flow" element={<OnboardingFlow />} />
           <Route path="/user-profile-management" element={<UserProfileManagement />} />
+          
+          <Route path="/admin-cms-dashboard" element={<AdminCMSDashboard />} />
+          <Route path="/notification-center" element={<NotificationCenter />} />
+          <Route path="/offline-learning-mode" element={<OfflineLearningMode />} />
+          
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="*" element={<NotFound />} />

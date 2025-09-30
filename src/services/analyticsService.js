@@ -1,248 +1,296 @@
 import { supabase } from '../lib/supabase';
 
 export const analyticsService = {
-  // Get user's learning progress analytics
-  async getUserProgressAnalytics(userId) {
+  // Track analytics event
+  async trackEvent(eventType, eventName, properties = {}, userId = null) {
     try {
-      // Get overall progress stats
-      const { data: progressStats, error: progressError } = await supabase?.rpc('get_user_progress_stats', { user_uuid: userId });
-
-      if (progressError) throw progressError;
-
-      // Get XP progression over time
-      const { data: xpHistory, error: xpError } = await supabase?.from('xp_transactions')?.select('amount, created_at, source, description')?.eq('user_id', userId)?.order('created_at', { ascending: true })?.limit(100);
-
-      if (xpError) throw xpError;
-
-      // Get lesson completion progress by discipline
-      const { data: disciplineProgress, error: disciplineError } = await supabase?.from('user_lesson_progress')?.select(`
-          completion_percentage,
-          status,
-          time_spent_minutes,
-          lessons(discipline, difficulty, title, xp_reward)
-        `)?.eq('user_id', userId);
-
-      if (disciplineError) throw disciplineError;
-
-      // Get achievements progress
-      const { data: achievements, error: achievementError } = await supabase?.from('user_achievements')?.select(`earned_at,progress_data,achievement_types(name, description, xp_reward, badge_color, icon_name)`)?.eq('user_id', userId)?.order('earned_at', { ascending: false });
-
-      if (achievementError) throw achievementError;
-
-      return {
-        data: {
-          progressStats: progressStats?.[0] || {},
-          xpHistory: xpHistory || [],
-          disciplineProgress: disciplineProgress || [],
-          achievements: achievements || []
-        },
-        error: null
-      };
-    } catch (error) {
-      return { data: null, error: error?.message };
-    }
-  },
-
-  // Get streak analytics
-  async getStreakAnalytics(userId) {
-    try {
-      const { data, error } = await supabase?.from('user_profiles')?.select('streak_days, last_activity_date')?.eq('id', userId)?.single();
-
-      if (error) throw error;
-
-      // Get daily activity for the last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo?.setDate(thirtyDaysAgo?.getDate() - 30);
-
-      const { data: activityData, error: activityError } = await supabase?.from('xp_transactions')?.select('created_at, amount')?.eq('user_id', userId)?.gte('created_at', thirtyDaysAgo?.toISOString())?.order('created_at', { ascending: true });
-
-      if (activityError) throw activityError;
-
-      return {
-        data: {
-          currentStreak: data?.streak_days || 0,
-          lastActivity: data?.last_activity_date,
-          dailyActivity: activityData || []
-        },
-        error: null
-      };
-    } catch (error) {
-      return { data: null, error: error?.message };
-    }
-  },
-
-  // Get learning velocity (lessons per week)
-  async getLearningVelocity(userId, weeks = 12) {
-    try {
-      const weeksAgo = new Date();
-      weeksAgo?.setDate(weeksAgo?.getDate() - (weeks * 7));
-
-      const { data, error } = await supabase?.from('user_lesson_progress')?.select('completed_at, lessons(title, difficulty, discipline)')?.eq('user_id', userId)?.eq('status', 'completed')?.gte('completed_at', weeksAgo?.toISOString())?.order('completed_at', { ascending: true });
-
-      if (error) throw error;
-
-      return { data: data || [], error: null };
-    } catch (error) {
-      return { data: null, error: error?.message };
-    }
-  },
-
-  // Get discipline competency radar data
-  async getDisciplineCompetency(userId) {
-    try {
-      const { data, error } = await supabase?.from('user_lesson_progress')?.select(`
-          completion_percentage,
-          status,
-          quiz_scores,
-          lessons(discipline, difficulty, xp_reward)
-        `)?.eq('user_id', userId)?.eq('status', 'completed');
-
-      if (error) throw error;
-
-      // Process data to calculate competency by discipline
-      const competencyData = {};
+      let sessionId = this?.getOrCreateSessionId();
       
-      data?.forEach(progress => {
-        const discipline = progress?.lessons?.discipline;
-        if (!discipline) return;
-
-        if (!competencyData?.[discipline]) {
-          competencyData[discipline] = {
-            totalLessons: 0,
-            completedLessons: 0,
-            averageScore: 0,
-            totalXP: 0,
-            difficultyBreakdown: {
-              beginner: 0,
-              intermediate: 0,
-              advanced: 0,
-              expert: 0
-            }
-          };
-        }
-
-        const comp = competencyData?.[discipline];
-        comp.totalLessons++;
-        comp.completedLessons++;
-        comp.totalXP += progress?.lessons?.xp_reward || 0;
-        comp.difficultyBreakdown[progress.lessons.difficulty]++;
-
-        // Calculate average quiz score
-        if (progress?.quiz_scores && Array.isArray(progress?.quiz_scores)) {
-          const avgQuizScore = progress?.quiz_scores?.reduce((sum, score) => sum + score, 0) / progress?.quiz_scores?.length;
-          comp.averageScore = (comp?.averageScore + avgQuizScore) / 2;
-        }
-      });
-
-      return { data: competencyData, error: null };
-    } catch (error) {
-      return { data: null, error: error?.message };
-    }
-  },
-
-  // Get daily challenges analytics
-  async getDailyChallengesAnalytics(userId) {
-    try {
-      const { data, error } = await supabase?.from('user_daily_challenges')?.select(`
-          completed_at,
-          score,
-          time_taken_minutes,
-          daily_challenges(challenge_date, description, reward_points, difficulty, discipline)
-        `)?.eq('user_id', userId)?.order('completed_at', { ascending: false })?.limit(30);
+      const { data, error } = await supabase
+        ?.from('analytics_events')
+        ?.insert({
+          user_id: userId,
+          event_type: eventType,
+          event_name: eventName,
+          properties,
+          session_id: sessionId,
+          page_url: window?.location?.href,
+          referrer_url: document?.referrer,
+          user_agent: navigator?.userAgent
+        })
+        ?.select()
+        ?.single();
 
       if (error) throw error;
-
-      return { data: data || [], error: null };
+      return { data, error: null };
     } catch (error) {
-      return { data: null, error: error?.message };
+      console.error('Track event error:', error);
+      return { data: null, error };
     }
   },
 
-  // Process XP history for charts
-  processXPHistory(xpHistory) {
-    const processedData = [];
-    let cumulativeXP = 0;
-
-    xpHistory?.forEach(transaction => {
-      cumulativeXP += transaction?.amount;
-      processedData?.push({
-        date: new Date(transaction.created_at)?.toLocaleDateString(),
-        xp: cumulativeXP,
-        dailyXP: transaction?.amount,
-        source: transaction?.source,
-        description: transaction?.description
-      });
-    });
-
-    return processedData;
-  },
-
-  // Process discipline progress for radar chart
-  processDisciplineRadarData(competencyData) {
-    return Object.entries(competencyData)?.map(([discipline, data]) => ({
-      discipline: discipline?.charAt(0)?.toUpperCase() + discipline?.slice(1),
-      competency: Math.min(100, (data?.totalXP / 1000) * 100), // Normalize to 100
-      lessonsCompleted: data?.completedLessons,
-      averageScore: Math.round(data?.averageScore),
-      difficultyDistribution: data?.difficultyBreakdown
-    }));
-  },
-
-  // Calculate learning streaks from activity data
-  calculateStreakData(dailyActivity) {
-    const streakData = [];
-    const activityByDate = {};
-
-    // Group activity by date
-    dailyActivity?.forEach(activity => {
-      const date = new Date(activity.created_at)?.toDateString();
-      if (!activityByDate?.[date]) {
-        activityByDate[date] = 0;
-      }
-      activityByDate[date] += activity?.amount;
-    });
-
-    // Generate last 30 days of data
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date();
-      date?.setDate(date?.getDate() - i);
-      const dateString = date?.toDateString();
-      
-      streakData?.push({
-        date: date?.toLocaleDateString(),
-        xp: activityByDate?.[dateString] || 0,
-        hasActivity: (activityByDate?.[dateString] || 0) > 0
-      });
-    }
-
-    return streakData;
-  },
-
-  // Format analytics data for export
-  formatAnalyticsExport(analyticsData) {
-    const { progressStats, xpHistory, disciplineProgress, achievements } = analyticsData;
-    
-    return {
-      summary: {
-        totalXP: progressStats?.total_xp || 0,
-        currentLevel: progressStats?.current_level || 1,
-        lessonsCompleted: progressStats?.lessons_completed || 0,
-        currentStreak: progressStats?.streak_days || 0,
-        totalAchievements: achievements?.length || 0
+  // Track page view
+  async trackPageView(pageName, userId = null, additionalProperties = {}) {
+    return await this?.trackEvent(
+      'page_viewed',
+      'Page Viewed',
+      {
+        page_name: pageName,
+        url: window?.location?.href,
+        path: window?.location?.pathname,
+        ...additionalProperties
       },
-      xpProgression: this.processXPHistory(xpHistory),
-      disciplineBreakdown: disciplineProgress?.reduce((acc, lesson) => {
-        const discipline = lesson?.lessons?.discipline || 'unknown';
-        if (!acc?.[discipline]) acc[discipline] = 0;
-        acc[discipline]++;
-        return acc;
-      }, {}),
-      recentAchievements: achievements?.slice(0, 5)?.map(ach => ({
-        name: ach?.achievement_types?.name,
-        earnedAt: ach?.earned_at,
-        xpReward: ach?.achievement_types?.xp_reward
-      })),
-      exportedAt: new Date()?.toISOString()
+      userId
+    );
+  },
+
+  // Track lesson events
+  async trackLessonEvent(eventType, lessonId, lessonTitle, userId, additionalData = {}) {
+    const eventNames = {
+      'lesson_started': 'Lesson Started',
+      'lesson_completed': 'Lesson Completed',
+      'lesson_failed': 'Lesson Failed'
     };
+
+    return await this?.trackEvent(
+      eventType,
+      eventNames?.[eventType] || eventType,
+      {
+        lesson_id: lessonId,
+        lesson_title: lessonTitle,
+        ...additionalData
+      },
+      userId
+    );
+  },
+
+  // Track user engagement
+  async trackEngagement(action, target, userId, metadata = {}) {
+    return await this?.trackEvent(
+      'feature_accessed',
+      'Feature Accessed',
+      {
+        action,
+        target,
+        timestamp: new Date()?.toISOString(),
+        ...metadata
+      },
+      userId
+    );
+  },
+
+  // Track search
+  async trackSearch(query, resultsCount, userId, filters = {}) {
+    return await this?.trackEvent(
+      'search_performed',
+      'Search Performed',
+      {
+        query,
+        results_count: resultsCount,
+        filters,
+        search_timestamp: new Date()?.toISOString()
+      },
+      userId
+    );
+  },
+
+  // Track subscription events
+  async trackSubscriptionEvent(eventType, subscriptionData, userId) {
+    return await this?.trackEvent(
+      'subscription_purchased',
+      'Subscription Event',
+      {
+        subscription_event_type: eventType,
+        subscription_tier: subscriptionData?.tier,
+        subscription_status: subscriptionData?.status,
+        ...subscriptionData
+      },
+      userId
+    );
+  },
+
+  // Track achievement earned
+  async trackAchievementEarned(achievementId, achievementName, userId, metadata = {}) {
+    return await this?.trackEvent(
+      'achievement_earned',
+      'Achievement Earned',
+      {
+        achievement_id: achievementId,
+        achievement_name: achievementName,
+        earned_at: new Date()?.toISOString(),
+        ...metadata
+      },
+      userId
+    );
+  },
+
+  // Track daily login
+  async trackDailyLogin(userId, streakData = {}) {
+    return await this?.trackEvent(
+      'daily_login',
+      'Daily Login',
+      {
+        login_time: this?.getTimeOfDay(),
+        date: new Date()?.toISOString()?.split('T')?.[0],
+        ...streakData
+      },
+      userId
+    );
+  },
+
+  // Get or create session ID
+  getOrCreateSessionId() {
+    let sessionId = sessionStorage?.getItem('analytics_session_id');
+    
+    if (!sessionId) {
+      sessionId = 'sess_' + Date?.now() + '_' + Math?.random()?.toString(36)?.substr(2, 9);
+      sessionStorage?.setItem('analytics_session_id', sessionId);
+      
+      // Set session timeout (30 minutes of inactivity)
+      setTimeout(() => {
+        sessionStorage?.removeItem('analytics_session_id');
+      }, 30 * 60 * 1000);
+    }
+    
+    return sessionId;
+  },
+
+  // Get time of day category
+  getTimeOfDay() {
+    const hour = new Date()?.getHours();
+    if (hour < 6) return 'night';
+    if (hour < 12) return 'morning';
+    if (hour < 18) return 'afternoon';
+    return 'evening';
+  },
+
+  // Get user events
+  async getUserEvents(userId, options = {}) {
+    try {
+      const { 
+        limit = 100, 
+        offset = 0, 
+        eventType = null,
+        startDate = null,
+        endDate = null 
+      } = options;
+
+      let query = supabase
+        ?.from('analytics_events')
+        ?.select('*')
+        ?.eq('user_id', userId)
+        ?.order('created_at', { ascending: false });
+
+      if (eventType) {
+        query = query?.eq('event_type', eventType);
+      }
+
+      if (startDate) {
+        query = query?.gte('created_at', startDate);
+      }
+
+      if (endDate) {
+        query = query?.lte('created_at', endDate);
+      }
+
+      if (limit) {
+        query = query?.limit(limit);
+      }
+
+      if (offset) {
+        query = query?.range(offset, offset + limit - 1);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Get user events error:', error);
+      return { data: [], error };
+    }
+  },
+
+  // Get event summary
+  async getEventSummary(userId, days = 30) {
+    try {
+      const startDate = new Date();
+      startDate?.setDate(startDate?.getDate() - days);
+
+      const { data, error } = await supabase
+        ?.from('analytics_events')
+        ?.select('event_type, created_at')
+        ?.eq('user_id', userId)
+        ?.gte('created_at', startDate?.toISOString());
+
+      if (error) throw error;
+
+      // Process the data
+      const summary = {};
+      const dailyActivity = {};
+
+      data?.forEach(event => {
+        // Count by event type
+        summary[event?.event_type] = (summary?.[event?.event_type] || 0) + 1;
+        
+        // Count daily activity
+        const date = event?.created_at?.split('T')?.[0];
+        dailyActivity[date] = (dailyActivity?.[date] || 0) + 1;
+      });
+
+      return {
+        data: {
+          summary,
+          dailyActivity,
+          totalEvents: data?.length || 0,
+          period: days
+        },
+        error: null
+      };
+    } catch (error) {
+      console.error('Get event summary error:', error);
+      return { data: null, error };
+    }
+  },
+
+  // Initialize analytics (call on app start)
+  init(userId = null) {
+    // Track initial page view
+    this?.trackPageView(document?.title, userId);
+    
+    // Track session start
+    if (userId) {
+      this?.trackEvent('session_start', 'Session Started', {
+        referrer: document?.referrer,
+        user_agent: navigator?.userAgent
+      }, userId);
+    }
+  },
+
+  // Clean up analytics (call on app unmount)
+  cleanup(userId = null) {
+    if (userId) {
+      this?.trackEvent('session_end', 'Session Ended', {
+        session_duration: Date?.now() - parseInt(this?.getOrCreateSessionId()?.split('_')?.[1])
+      }, userId);
+    }
   }
 };
+
+// Auto-initialize analytics tracking
+if (typeof window !== 'undefined') {
+  // Track page navigation
+  window?.addEventListener('popstate', () => {
+    analyticsService?.trackPageView(document?.title);
+  });
+
+  // Track page unload
+  window?.addEventListener('beforeunload', () => {
+    const userId = JSON?.parse(localStorage?.getItem('auth-storage') || '{}')?.user?.id;
+    if (userId) {
+      analyticsService?.cleanup(userId);
+    }
+  });
+}
+
+export default analyticsService;
