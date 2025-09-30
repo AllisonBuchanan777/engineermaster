@@ -1,31 +1,54 @@
-import React from "react";
-import { BrowserRouter, Routes as RouterRoutes, Route } from "react-router-dom";
-import ScrollToTop from "components/ScrollToTop";
-import ErrorBoundary from "components/ErrorBoundary";
-import NotFound from "pages/NotFound";
-import LessonInterface from './pages/lesson-interface';
-import Login from './pages/login';
+import React from 'react';
+import { BrowserRouter, Routes as RouterRoutes, Route } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
+
+// Existing pages
 import Dashboard from './pages/dashboard';
-import SimulationLab from './pages/simulation-lab';
 import LearningRoadmap from './pages/learning-roadmap';
+import LessonInterface from './pages/lesson-interface';
+import SimulationLab from './pages/simulation-lab';
+import Login from './pages/login';
 import Register from './pages/register';
+import NotFound from './pages/NotFound';
+
+// Subscription page (existing)
+import SubscriptionPage from './pages/subscription';
+
+// New pages
+import SubscriptionPlansPage from './pages/subscription-plans';
+import ProgressAnalyticsPage from './pages/progress-analytics';
+import DailyChallengesHub from './pages/daily-challenges-hub';
+
+// Comprehensive Lesson Library with Skill Trees and Achievement Levels
+import ComprehensiveLessonLibrary from './pages/comprehensive-lesson-library';
+
+// New individual feature pages
+import SkillTrees from './pages/skill-trees';
+import AchievementLevels from './pages/achievement-levels';
 
 const Routes = () => {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-      <ScrollToTop />
-      <RouterRoutes>
-        {/* Define your route here */}
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/lesson-interface" element={<LessonInterface />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/simulation-lab" element={<SimulationLab />} />
-        <Route path="/learning-roadmap" element={<LearningRoadmap />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="*" element={<NotFound />} />
-      </RouterRoutes>
+        <ScrollToTop />
+        <RouterRoutes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/learning-roadmap" element={<LearningRoadmap />} />
+          <Route path="/lesson/:lessonId" element={<LessonInterface />} />
+          <Route path="/simulation-lab" element={<SimulationLab />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/subscription-plans" element={<SubscriptionPlansPage />} />
+          <Route path="/progress-analytics" element={<ProgressAnalyticsPage />} />
+          <Route path="/daily-challenges-hub" element={<DailyChallengesHub />} />
+          <Route path="/comprehensive-lesson-library" element={<ComprehensiveLessonLibrary />} />
+          <Route path="/skill-trees" element={<SkillTrees />} />
+          <Route path="/achievement-levels" element={<AchievementLevels />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="*" element={<NotFound />} />
+        </RouterRoutes>
       </ErrorBoundary>
     </BrowserRouter>
   );
