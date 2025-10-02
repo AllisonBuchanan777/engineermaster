@@ -42,6 +42,18 @@ import OfflineLearningMode from './pages/offline-learning-mode';
 // NEW PAGES - Enhanced Dashboard
 import EnhancedDashboard from './pages/enhanced-dashboard';
 
+// NEW PAGE - Electrical Engineering Curriculum
+import ElectricalEngineeringCurriculum from './pages/electrical-engineering-curriculum';
+
+// NEW PAGE - Mechanical Engineering Curriculum
+import MechanicalEngineeringCurriculum from './pages/mechanical-engineering-curriculum';
+
+// NEW PAGE - Mechatronic Engineering Curriculum
+import MechatronicEngineeringCurriculum from './pages/mechatronic-engineering-curriculum';
+
+// NEW PAGE - Aerospace Engineering Curriculum
+import AerospaceEngineeringCurriculum from './pages/aerospace-engineering-curriculum';
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -68,6 +80,18 @@ const Routes = () => {
           <Route path="/admin-cms-dashboard" element={<AdminCMSDashboard />} />
           <Route path="/notification-center" element={<NotificationCenter />} />
           <Route path="/offline-learning-mode" element={<OfflineLearningMode />} />
+          
+          {/* NEW ROUTE - Electrical Engineering Curriculum */}
+          <Route path="/electrical-engineering-curriculum" element={<ElectricalEngineeringCurriculum />} />
+          
+          {/* NEW ROUTE - Mechanical Engineering Curriculum */}
+          <Route path="/mechanical-engineering-curriculum" element={<MechanicalEngineeringCurriculum />} />
+          
+          {/* NEW ROUTE - Mechatronic Engineering Curriculum */}
+          <Route path="/mechatronic-engineering-curriculum" element={<MechatronicEngineeringCurriculum />} />
+          
+          {/* NEW ROUTE - Aerospace Engineering Curriculum */}
+          <Route path="/aerospace-engineering-curriculum" element={<AerospaceEngineeringCurriculum />} />
           
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
